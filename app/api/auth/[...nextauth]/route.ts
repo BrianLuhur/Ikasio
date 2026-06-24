@@ -1,2 +1,3 @@
-// TODO: NextAuth handler — configured in Day 3
-export {};
+import { handlers } from "@/lib/auth"
+
+export const { GET, POST } = handlers

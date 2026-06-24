@@ -13,6 +13,8 @@
 
 ---
 
+---
+
 ## Day 1 Learnings — Permanent Notes for All Future Days
 
 These were discovered during Day 1 and apply to every subsequent day.
@@ -34,6 +36,24 @@ TypeScript-safe placeholders are in place. No changes needed to existing stubs u
 
 **6. Windows Zone.Identifier files**
 A `.gitignore` rule was added during Day 1 to prevent Windows metadata files from being committed. This is already handled.
+
+---
+
+## Day 2 Learnings — Permanent Notes for All Future Days
+
+These were discovered during Day 2 and apply to every subsequent day.
+
+**1. NEVER upgrade Prisma to v7**
+Prisma 7 removed `url` and `directUrl` from `schema.prisma`, breaking the entire datasource block approach the technical plan uses. Prisma 7 requires `prisma.config.ts` and `@prisma/adapter-pg` — significant undocumented complexity with an unstable API. Prisma was downgraded to v6.19.3 on Day 2 and must stay there. Every future day that installs or references Prisma must pin to v6: `npm install prisma@6 --save-dev` and `npm install @prisma/client@6`.
+
+**2. Prisma Studio is incompatible with Node.js v24**
+Prisma Studio crashes on launch with Node.js v24 — this is a known upstream bug. Use the **Supabase Table Editor** for all visual database inspection instead. Any future day that involves schema changes or database debugging should reference the Supabase Table Editor, not Prisma Studio.
+
+**3. DATABASE_URL uses port 6543, DIRECT_URL uses port 5432**
+Both connection strings are set in `.env`. The transaction pooler (6543) is used for runtime queries. The direct connection (5432) is used for migrations only via `directUrl` in `schema.prisma`. Do not mix these up.
+
+**4. NEXTAUTH_SECRET is already generated**
+Set in `.env` during Day 1. Day 3 only needs Google OAuth credentials added — do not regenerate the secret.
 
 ---
 
@@ -712,7 +732,7 @@ Updated in the manager chat at the end of each day.
 
 ### Week 1 — Foundation
 - [x] Day 1 — Project setup ✅
-- [ ] Day 2 — Database setup
+- [x] Day 2 — Database setup ✅
 - [ ] Day 3 — Authentication
 - [ ] Day 4 — Subject organisation
 - [ ] Day 5 — Lecture creation
