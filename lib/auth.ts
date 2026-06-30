@@ -14,7 +14,9 @@ declare module "next-auth" {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
+  ...authConfig,
   callbacks: {
+    ...authConfig.callbacks,
     jwt({ token, user }) {
       if (user) {
         token.sub = user.id
@@ -28,5 +30,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session
     },
   },
-  ...authConfig,
 })

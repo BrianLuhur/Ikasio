@@ -11,4 +11,9 @@ export const authConfig: NextAuthConfig = {
   pages: {
     signIn: "/sign-in",
   },
+  callbacks: {
+    authorized({ auth }) {
+      return !!auth?.user
+    },
+  },
 }

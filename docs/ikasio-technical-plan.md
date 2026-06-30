@@ -13,8 +13,6 @@
 
 ---
 
----
-
 ## Day 1 Learnings — Permanent Notes for All Future Days
 
 These were discovered during Day 1 and apply to every subsequent day.
@@ -54,6 +52,38 @@ Both connection strings are set in `.env`. The transaction pooler (6543) is used
 
 **4. NEXTAUTH_SECRET is already generated**
 Set in `.env` during Day 1. Day 3 only needs Google OAuth credentials added — do not regenerate the secret.
+
+---
+
+## Day 3 Learnings — Permanent Notes for All Future Days
+
+These were discovered during Day 3 and apply to every subsequent day.
+
+**1. JWT session strategy is required — database sessions are not possible with Edge middleware**
+NextAuth v5 middleware runs in Edge Runtime. Edge Runtime cannot use PrismaAdapter. Database session strategy requires the adapter to verify sessions on every request. Therefore JWT session strategy must be used. This means:
+- Sessions are stored as signed JWT cookies — no database call in middleware
+- PrismaAdapter still creates User and Account rows in Supabase on every OAuth sign-in
+- The Session table in the database will remain EMPTY — JWT does not write to it
+- The VerificationToken table is also unused — email provider is not in scope
+- This is the standard NextAuth v5 + PrismaAdapter + Edge middleware pattern
+
+**2. session.user.id is available in any Server Component**
+TypeScript module augmentation was added in lib/auth.ts. Access via:
+```typescript
+const session = await auth()
+session?.user?.id  // typed correctly, no TypeScript error
+```
+
+**3. Import rules for auth**
+- Import auth-related functions from `@/lib/auth` — not from `next-auth` directly
+- Do NOT import from `@/auth.config` in any page or component
+- `auth.config.ts` is for middleware only — it is edge-safe and has no PrismaAdapter
+
+**4. next-auth version is 5.0.0-beta.31**
+Installed version is `next-auth@5.0.0-beta.31`. Do not upgrade without testing — beta versions can introduce breaking changes.
+
+**5. Sign-in uses a Server Action, not a client-side handler**
+The sign-in button on `app/(auth)/sign-in/page.tsx` is a Server Component with a `<form>` whose `action` is an async Server Action calling `signIn("google", { redirectTo: "/subjects" })` from `@/lib/auth`. No `"use client"` directive, no `onClick` handler, no `next-auth/react`. Any future page that needs a sign-in or sign-out trigger should follow this same Server Action pattern for consistency, rather than introducing a client-side `signIn` call from `next-auth/react`.
 
 ---
 
@@ -669,14 +699,19 @@ ikasio/
 │   ├── practice-questions/
 │   └── ui/                     ← Reusable primitives (button, modal, etc)
 ├── docs/                       ← Project documentation
-│   ├── Ikasio-problem-statement.md
-│   └── Ikasio-technical-plan.md
+│   ├── ikasio-problem-statement.md
+│   └── ikasio-technical-plan.md
 ├── lib/
 │   ├── prisma.ts               ← Prisma client singleton
-│   ├── auth.ts                 ← NextAuth config
+│   ├── auth.ts                 ← NextAuth config (PrismaAdapter, Node.js runtime —
+│   │                              imported by the app, never by middleware)
 │   └── claude.ts               ← Claude API helper functions
 ├── prisma/
 │   └── schema.prisma
+├── auth.config.ts               ← Edge-safe NextAuth config (Day 3) — providers + pages
+│                                   only, no PrismaAdapter. Imported by middleware.ts.
+├── middleware.ts                 ← Route protection (Day 3) — runs in Edge Runtime,
+│                                   imports from auth.config.ts, never from lib/auth.ts
 ├── AGENTS.md                   ← AI coding assistant conventions
 ├── .env
 ├── .env.example
@@ -733,7 +768,7 @@ Updated in the manager chat at the end of each day.
 ### Week 1 — Foundation
 - [x] Day 1 — Project setup ✅
 - [x] Day 2 — Database setup ✅
-- [ ] Day 3 — Authentication
+- [x] Day 3 — Authentication ✅
 - [ ] Day 4 — Subject organisation
 - [ ] Day 5 — Lecture creation
 - [ ] Day 6 — Note editor (TipTap)
