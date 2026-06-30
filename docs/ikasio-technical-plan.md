@@ -85,6 +85,47 @@ Installed version is `next-auth@5.0.0-beta.31`. Do not upgrade without testing �
 **5. Sign-in uses a Server Action, not a client-side handler**
 The sign-in button on `app/(auth)/sign-in/page.tsx` is a Server Component with a `<form>` whose `action` is an async Server Action calling `signIn("google", { redirectTo: "/subjects" })` from `@/lib/auth`. No `"use client"` directive, no `onClick` handler, no `next-auth/react`. Any future page that needs a sign-in or sign-out trigger should follow this same Server Action pattern for consistency, rather than introducing a client-side `signIn` call from `next-auth/react`.
 
+**6. CRITICAL — auth.config.ts requires an explicit `authorized` callback or middleware does not enforce redirects**
+This was missed in the original Day 3 implementation and discovered as a security gap during Day 4 testing: direct navigation to a protected route in a fully unauthenticated browser loaded the page instead of redirecting to `/sign-in`. In NextAuth v5, wrapping `auth()` as middleware only attaches session data to the request — it does NOT enforce a redirect without an explicit `callbacks.authorized` function. Without it, every request is implicitly treated as authorized regardless of session state. `auth.config.ts` must include:
+```typescript
+callbacks: {
+  authorized({ auth }) {
+    return !!auth?.user
+  }
+}
+```
+This is a hard requirement for middleware-based route protection to function at all, not an optional enhancement. If this callback is ever removed, route protection silently stops working with no error.
+
+**7. CRITICAL — spread order in lib/auth.ts must be preserved**
+Adding the `authorized` callback to `auth.config.ts` caused a regression: `session.user.id` became `undefined` for newly signed-in users, breaking every API route's ownership check. Root cause: in `lib/auth.ts`, `...authConfig` was spread AFTER the inline `callbacks` block inside `NextAuth({...})`. Once `authConfig` gained its own `callbacks` key, the spread silently overwrote the inline `jwt` and `session` callbacks — object spread replaces duplicate keys, it does not merge them. The fix, which must be preserved in all future edits to `lib/auth.ts`:
+- `...authConfig` must be spread BEFORE the inline `callbacks` key
+- Inside that `callbacks` block, explicitly merge `...authConfig.callbacks` alongside the inline `jwt` and `session` callbacks, so all three (`authorized`, `jwt`, `session`) coexist
+- Reversing this order will silently break `session.user.id` again with no obvious error — verify via `fetch('/api/auth/session')` showing a populated `user.id` if anything in this file is touched again
+
+**8. JWT session cookies do not invalidate when database rows are deleted**
+Because JWT strategy means middleware validates the signed cookie only and never re-checks the database, a user deleted from Supabase can still hold a "valid" session. When testing auth flows that involve deleting test users, manually clear `authjs.session-token`, `authjs.callback-url`, and `authjs.csrf-token` cookies, or use a fresh incognito window — do not assume deleting the database row resets the session.
+
+---
+
+## Day 4 Learnings — Permanent Notes for All Future Days
+
+These were discovered during Day 4 and apply to every subsequent day.
+
+**1. Shared list state belongs in a Context provider, not independent fetches per component**
+Day 4 originally specified the sidebar and the subjects page each fetching subjects independently. This caused a real bug: creating a subject from one location did not update the other. The fix was `SubjectsProvider` (`components/sidebar/subjects-provider.tsx`), a React Context at the dashboard layout level exposing `subjects`, `isLoading`, `addSubject`, and `refetch`. Any future component that needs the subject list — for example a lecture creation flow that needs to know the current subject — should consume `useSubjects()` rather than fetching independently. This pattern should be followed for any other data that multiple sibling components need simultaneously (e.g. notes list in Day 6+).
+
+**2. `react-hooks/set-state-in-effect` is an active ESLint rule in this project**
+This rule flags calling a state setter synchronously inside `useEffect` (e.g. `setIsLoading(true)` at the top of a `fetchData()` call triggered on mount) — part of the React Compiler-readiness rule set shipped with the current Next.js/ESLint config. It will very likely surface again on Day 5 (lecture fetching), Day 6 (note fetching), and Day 10 (chat history fetching). For Day 4 it was suppressed with an inline `eslint-disable-next-line` and an explanatory comment rather than introducing SWR or React Query, which was judged out of scope. If this rule fires repeatedly across future days, consider whether adopting a data-fetching library is worth it for the whole project rather than suppressing it day after day — flag this as a decision point if it recurs more than twice more.
+
+**3. Next.js 15 Server Components use async params**
+Dynamic route params are `Promise<{ subjectId: string }>`, not a plain object — they must be awaited: `const { subjectId } = await params`. This pattern was established in `app/(dashboard)/subjects/[subjectId]/page.tsx` and must be followed identically in Day 5's `app/(dashboard)/subjects/[subjectId]/lectures/[lectureId]/page.tsx` and any other dynamic Server Component route.
+
+**4. Known tech debt — duplicated Subject type**
+The `Subject` TypeScript type is independently defined in `subjects-provider.tsx` (exported, canonical) and `create-subject-modal.tsx` (local, unsynced duplicate). Not urgent, but should be consolidated — likely via `import type { Subject } from '@prisma/client'` directly — before more components need this shape. Revisit during Day 14 (Week 2 polish) if not addressed sooner.
+
+**5. Delete-subject UI and sign-out UI were missed from their original days, completed in a catch-up session**
+The Subjects API route supports `DELETE` and correctly verifies ownership, but Day 4's original detailed prompt never specified a UI trigger for it — the document's high-level spec only said "API routes: ...delete subjects" without an equivalent UI requirement, unlike create which explicitly got "Subject creation modal." This has been corrected in the Day 4 spec above. Separately, sign-out was always correctly scoped to Day 3 in the high-level plan ("Build sign in / sign out pages") but was dropped when the detailed Day 3 prompt was written — only sign-in was implemented. Both gaps were closed in a dedicated catch-up session run before Day 5 began. See the catch-up session summary for what was actually built and where the sign-out trigger and delete-subject trigger live in the codebase.
+
 ---
 
 ### Week 1 — Foundation
@@ -115,6 +156,7 @@ The sign-in button on `app/(auth)/sign-in/page.tsx` is a Server Component with a
 - Build sidebar component listing all subjects
 - API routes: create, read, update, delete subjects
 - Subject creation modal or inline form
+- Delete subject UI — confirmation required before deleting, since this cascades and deletes all lectures, notes, chat messages, study sessions, and practice questions for that subject
 - Click subject → navigate to subject view
 - Empty state when no subjects exist
 
@@ -693,6 +735,9 @@ ikasio/
 │   └── page.tsx                ← Landing / redirect to dashboard
 ├── components/
 │   ├── sidebar/
+│   │   ├── sidebar.tsx               ← Day 4: lists subjects, active highlight
+│   │   ├── create-subject-modal.tsx  ← Day 4: modal creation flow
+│   │   └── subjects-provider.tsx     ← Day 4: shared Context for subject list state
 │   ├── note-editor/
 │   ├── chat-panel/
 │   ├── pomodoro-timer/
@@ -769,7 +814,8 @@ Updated in the manager chat at the end of each day.
 - [x] Day 1 — Project setup ✅
 - [x] Day 2 — Database setup ✅
 - [x] Day 3 — Authentication ✅
-- [ ] Day 4 — Subject organisation
+- [x] Day 4 — Subject organisation ✅
+- [ ] Catch-up — sign-out (Day 3 scope) + delete subject UI (Day 4 scope)
 - [ ] Day 5 — Lecture creation
 - [ ] Day 6 — Note editor (TipTap)
 - [ ] Day 7 — AI note generation

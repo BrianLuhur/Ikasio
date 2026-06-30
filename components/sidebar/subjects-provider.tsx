@@ -23,6 +23,8 @@ type SubjectsContextValue = {
   subjects: Subject[]
   isLoading: boolean
   addSubject: (subject: Subject) => void
+  updateSubject: (subject: Subject) => void
+  removeSubject: (subjectId: string) => void
   refetch: () => Promise<void>
 }
 
@@ -54,9 +56,24 @@ export function SubjectsProvider({ children }: { children: ReactNode }) {
     setSubjects((prev) => [...prev, subject])
   }, [])
 
+  const updateSubject = useCallback((subject: Subject) => {
+    setSubjects((prev) => prev.map((s) => (s.id === subject.id ? subject : s)))
+  }, [])
+
+  const removeSubject = useCallback((subjectId: string) => {
+    setSubjects((prev) => prev.filter((s) => s.id !== subjectId))
+  }, [])
+
   return (
     <SubjectsContext.Provider
-      value={{ subjects, isLoading, addSubject, refetch: fetchSubjects }}
+      value={{
+        subjects,
+        isLoading,
+        addSubject,
+        updateSubject,
+        removeSubject,
+        refetch: fetchSubjects,
+      }}
     >
       {children}
     </SubjectsContext.Provider>
