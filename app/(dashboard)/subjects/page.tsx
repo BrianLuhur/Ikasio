@@ -51,7 +51,7 @@ export default function SubjectsPage() {
     <div className="p-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="mb-1 text-xl font-semibold text-neutral-900">
+          <h1 className="mb-1 text-xl font-semibold text-neutral-200">
             Your Subjects
           </h1>
           <p className="text-sm text-neutral-500">
@@ -60,7 +60,7 @@ export default function SubjectsPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+          className="block rounded-lg border bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 border-neutral-200"
         >
           + New Subject
         </button>
@@ -70,16 +70,16 @@ export default function SubjectsPage() {
           <div key={subject.id} className="group relative">
             <Link
               href={`/subjects/${subject.id}`}
-              className="block rounded-lg border border-neutral-200 p-4 pr-8 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
+              className="block rounded-lg border border-neutral-200 p-4 pr-8 transition-colors hover:border-neutral-400 hover:bg-neutral-700"
             >
               <div className="mb-2 flex items-center gap-2">
                 {subject.colour && (
                   <span
-                    className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: subject.colour }}
                   />
                 )}
-                <span className="font-medium text-neutral-900 truncate">
+                <span className="font-medium text-neutral-100 truncate">
                   {subject.name}
                 </span>
               </div>

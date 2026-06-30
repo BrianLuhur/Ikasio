@@ -24,7 +24,7 @@ export default async function SubjectDetailPage({
 
   return (
     <div className="p-8">
-      <h1 className="text-xl font-semibold text-neutral-900">
+      <h1 className="text-xl font-semibold text-neutral-100">
         {subject.name}
       </h1>
       <p className="mt-4 text-sm text-neutral-500">

@@ -128,6 +128,30 @@ The Subjects API route supports `DELETE` and correctly verifies ownership, but D
 
 ---
 
+## Catch-up Session Learnings — Permanent Notes for All Future Days
+
+This session closed the Day 3 (sign-out) and Day 4 (delete-subject UI) gaps, and edit-subject UI was added at the same time since the PATCH endpoint already existed. These were discovered or established during the catch-up session and apply to every subsequent day.
+
+**1. `lib/actions/` is the convention for Server Actions called from Client Components**
+A dedicated actions file (e.g. `lib/actions/auth.ts`) with `"use server"` at the top, imported directly into a Client Component, lets that component call the action without needing a separate Server Component wrapper. This is different from — and simpler than — the pattern originally used for the sign-in page on Day 3 (a Server Component with an inline form action). Server Actions can be invoked directly from client code; the Client/Server import restriction only applies to importing and rendering actual Server Components. Any future day that needs a Server Action triggered from interactive client-side UI (e.g. a dropdown, a button with loading state) should follow this `lib/actions/` pattern rather than building a separate Server Component wrapper.
+
+**2. `app/(dashboard)/layout.tsx` is now async and passes `session.user` down as a prop**
+The dashboard layout now calls `auth()` itself and passes `session.user` down to `Sidebar` as a prop. Any new component added inside the `(dashboard)` route group that needs user/session data should receive it via prop drilling from this layout rather than independently calling `auth()` again — consistent with the single-source-of-state lesson from `SubjectsProvider` on Day 4.
+
+**3. `SubjectMenu` is a reusable row-action pattern**
+`components/sidebar/subject-menu.tsx` is a three-dot trigger → dropdown component wired to Edit/Delete callbacks via props, used identically in both the sidebar list and the `/subjects` card grid. If Day 5's lecture list needs row-level actions (edit, delete, reorder), this component is very likely reusable as-is or with minimal changes rather than needing to be rebuilt from scratch.
+
+**4. The provider pattern now has an established five-method shape**
+`subjects-provider.tsx` exposes `{ subjects, isLoading, addSubject, updateSubject, removeSubject, refetch }`. If a future day introduces a similar provider for another list (e.g. a `LecturesProvider` if lectures need to be visible in more than one place simultaneously), mirror this exact shape for consistency.
+
+**5. The Subjects DELETE route takes `id` as a query parameter, not a request body field**
+`DELETE /api/subjects?id=...` — not `{ id }` in the request body. This was undocumented anywhere outside the route file itself and required reading the actual implementation to discover. If a future day builds another DELETE route (e.g. for lectures or notes), match this convention so the API surface stays consistent across the app.
+
+**6. Commit and push must be explicitly verified, not assumed from a passing build**
+This session's working draft sat uncommitted after `npm run build` passed, because the build passing was treated as if it implied the work was saved. It does not — `npm run build` only validates the code compiles; it has no relationship to git state. Every future day's prompt must treat "commit and push" as its own explicitly verified final step, confirmed by checking the GitHub repository directly, not inferred from an earlier successful build.
+
+---
+
 ### Week 1 — Foundation
 
 **Day 1 — Project Setup**
@@ -737,7 +761,12 @@ ikasio/
 │   ├── sidebar/
 │   │   ├── sidebar.tsx               ← Day 4: lists subjects, active highlight
 │   │   ├── create-subject-modal.tsx  ← Day 4: modal creation flow
+│   │   ├── edit-subject-modal.tsx    ← Catch-up: rename + recolour
+│   │   ├── delete-subject-modal.tsx  ← Catch-up: cascade-warning confirmation
+│   │   ├── subject-menu.tsx          ← Catch-up: reusable 3-dot Edit/Delete trigger
+│   │   ├── account-menu.tsx          ← Catch-up: avatar/name/email + sign-out
 │   │   └── subjects-provider.tsx     ← Day 4: shared Context for subject list state
+│   │                                   (extended in catch-up: updateSubject, removeSubject)
 │   ├── note-editor/
 │   ├── chat-panel/
 │   ├── pomodoro-timer/
@@ -750,7 +779,10 @@ ikasio/
 │   ├── prisma.ts               ← Prisma client singleton
 │   ├── auth.ts                 ← NextAuth config (PrismaAdapter, Node.js runtime —
 │   │                              imported by the app, never by middleware)
-│   └── claude.ts               ← Claude API helper functions
+│   ├── claude.ts               ← Claude API helper functions
+│   └── actions/                ← Catch-up: convention for Server Actions invoked
+│       └── auth.ts               from Client Components ("use server" at top,
+│                                  imported directly — e.g. signOut action)
 ├── prisma/
 │   └── schema.prisma
 ├── auth.config.ts               ← Edge-safe NextAuth config (Day 3) — providers + pages
@@ -815,7 +847,7 @@ Updated in the manager chat at the end of each day.
 - [x] Day 2 — Database setup ✅
 - [x] Day 3 — Authentication ✅
 - [x] Day 4 — Subject organisation ✅
-- [ ] Catch-up — sign-out (Day 3 scope) + delete subject UI (Day 4 scope)
+- [x] Catch-up — sign-out (Day 3 scope) + delete subject UI (Day 4 scope) ✅
 - [ ] Day 5 — Lecture creation
 - [ ] Day 6 — Note editor (TipTap)
 - [ ] Day 7 — AI note generation

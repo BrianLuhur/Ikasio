@@ -28,7 +28,7 @@ export function AccountMenu({ user }: { user: AccountMenuUser }) {
     <div ref={menuRef} className="relative">
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full items-center gap-2 rounded-md p-2 text-left hover:bg-neutral-100"
+        className="flex w-full items-center gap-2 rounded-md p-2 text-left hover:bg-neutral-100 text-neutral-700"
       >
         {user.image ? (
           <Image

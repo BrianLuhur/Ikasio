@@ -89,7 +89,7 @@ export function CreateSubjectModal({ onClose, onCreated }: CreateSubjectModalPro
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Operating Systems"
           autoFocus
-          className="mb-4 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none"
+          className="mb-4 w-full rounded-md border border-neutral-500 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none text-neutral-700"
         />
 
         <label className="mb-2 block text-sm font-medium text-neutral-700">

@@ -39,7 +39,7 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
           href="/subjects"
           className="text-sm font-semibold text-neutral-500 uppercase tracking-wide hover:text-neutral-900"
         >
-          Subjects
+          iKasio
         </Link>
       </div>
       <button
@@ -64,12 +64,12 @@ export function Sidebar({ user }: { user?: SidebarUser }) {
                 className={`flex items-center gap-2 rounded-md py-2 pl-2 pr-8 text-sm transition-colors ${
                   isActive
                     ? "bg-neutral-200 font-medium text-neutral-900"
-                    : "text-neutral-700 hover:bg-neutral-100"
+                    : "text-neutral-700 hover:bg-neutral-300"
                 }`}
               >
                 {subject.colour && (
                   <span
-                    className="h-2 w-2 flex-shrink-0 rounded-full"
+                    className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: subject.colour }}
                   />
                 )}
